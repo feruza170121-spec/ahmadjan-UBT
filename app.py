@@ -1,6 +1,7 @@
 import streamlit as st
 import json
 import os
+import uuid
 
 # Баракчаның баптаулары
 st.set_page_config(page_title="Ахмад Академиясы - ҰБТ Порталы", page_icon="🎓", layout="centered")
@@ -116,18 +117,18 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Сессияны басқару
+# Сессияны және Пайдаланушыларды басқару
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.username = ""
     st.session_state.role = ""
+    st.session_state.session_id = ""
 
-# Пайдаланушылар базасы
 if 'users' not in st.session_state:
     st.session_state.users = {
-        "student": {"password": "123", "name": "Айбек", "role": "student"},
-        "teacher": {"password": "123", "name": "Математика мұғалімі", "role": "teacher", "subject": "Математикалық сауаттылық"},
-        "admin": {"password": "admin123", "name": "Мектеп Директоры", "role": "director"}
+        "student": {"password": "123", "name": "Айбек", "role": "student", "active_session_id": ""},
+        "teacher": {"password": "123", "name": "Математика мұғалімі", "role": "teacher", "subject": "Математикалық сауаттылық", "active_session_id": ""},
+        "admin": {"password": "admin123", "name": "Мектеп Директоры", "role": "director", "active_session_id": ""}
     }
 
 if 'results' not in st.session_state:
@@ -147,6 +148,7 @@ def show_certificate(student_name, subject, score, total):
             border-radius: 16px; 
             box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
             margin-top: 15px;
+            margin-bottom: 25px;
             color: #4ADE80;
         ">
             <h5 style="color: #86EFAC; letter-spacing: 3px; margin-bottom: 5px;">АХМАД АКАДЕМИЯСЫ</h5>
@@ -174,10 +176,15 @@ def login_page():
         if username in st.session_state.users:
             user = st.session_state.users[username]
             if user["password"] == password:
+                # Бірегей сессия ID генерациялау (бір уақытта 1 құрылғы кіруі үшін)
+                new_session_id = str(uuid.uuid4())
+                st.session_state.users[username]["active_session_id"] = new_session_id
+                
                 st.session_state.logged_in = True
                 st.session_state.username = username
                 st.session_state.display_name = user["name"]
                 st.session_state.role = user["role"]
+                st.session_state.session_id = new_session_id
                 st.session_state.teacher_subject = user.get("subject", "Математикалық сауаттылық")
                 st.rerun()
             else:
@@ -282,6 +289,7 @@ def student_dashboard():
         total = st.session_state.get("total", 0)
         user_answers = st.session_state.get("user_answers", {})
 
+        # 1. ТЕСТ АЯҚТАЛҒАНДА СРАЗУ СЕРТИФИКАТ КӨРІНЕДІ
         show_certificate(st.session_state.display_name, subject, score, total)
         
         st.divider()
@@ -362,7 +370,7 @@ def teacher_dashboard():
         else:
             st.error("Барлық өрістерді толтырыңыз!")
 
-# Директор кабинеті (Толық доступ бар)
+# Директор кабинеті (Барлық доступ бар)
 def director_dashboard():
     st.title(f"👨‍💼 Директор кабинеті")
     
@@ -392,20 +400,20 @@ def director_dashboard():
         st.table(user_list)
         
         st.divider()
-        st.subheader("✏️ Парольду же Аты-жөндү өзгөртүү (Редактировать)")
+        st.subheader("✏️ Парольді және Аты-жөнін өзгеру")
         
         all_logins = list(st.session_state.users.keys())
-        selected_user_to_edit = st.selectbox("Өзгөртө турган пайдаланушыны таңдаңыз:", all_logins)
+        selected_user_to_edit = st.selectbox("Өзгертетін пайдаланушыны таңдаңыз:", all_logins)
         
         if selected_user_to_edit:
             u_info = st.session_state.users[selected_user_to_edit]
             edit_name = st.text_input("Жаңа Аты-жөні:", value=u_info["name"], key="edit_u_name")
             edit_pass = st.text_input("Жаңа Пароль:", value=u_info["password"], key="edit_u_pass")
             
-            if st.button("💾 Парольду / Аты-жөндү сақтау", type="primary"):
+            if st.button("💾 Парольді / Аты-жөнді сақтау", type="primary"):
                 st.session_state.users[selected_user_to_edit]["name"] = edit_name
                 st.session_state.users[selected_user_to_edit]["password"] = edit_pass
-                st.success(f"'{selected_user_to_edit}' аккаунтунун маалыматтары сәтті жаңартылды!")
+                st.success(f"'{selected_user_to_edit}' аккаунтының мәліметтері жаңартылды!")
                 st.rerun()
 
         st.divider()
@@ -424,7 +432,7 @@ def director_dashboard():
                 if new_uname in st.session_state.users:
                     st.error("Бұл логин бос емес!")
                 else:
-                    u_data = {"password": new_pass, "name": new_name, "role": new_role}
+                    u_data = {"password": new_pass, "name": new_name, "role": new_role, "active_session_id": ""}
                     if new_role == "teacher":
                         u_data["subject"] = teacher_subj
                     st.session_state.users[new_uname] = u_data
@@ -498,6 +506,19 @@ def director_dashboard():
                     save_questions(st.session_state.questions)
                     st.success("Сұрақ өшірілді!")
                     st.rerun()
+
+# 2. БІР ЛОГИНГЕ 2 ҚҰРЫЛҒЫДАН КІРУДІ БОЛДЫРМАУ ТЕКСЕРІСІ
+if st.session_state.logged_in:
+    current_username = st.session_state.username
+    current_session_id = st.session_state.session_id
+    
+    # Егер басқа құрылғы кірсе, сессия ID өзгереді
+    active_session_in_db = st.session_state.users.get(current_username, {}).get("active_session_id", "")
+    
+    if current_session_id != active_session_in_db:
+        st.session_state.logged_in = False
+        st.warning("⚠️ Сіздің аккаунтыңызға басқа құрылғыдан (ПК/Телефон) кірді! Жүйеден шығарылдыңыз.")
+        st.rerun()
 
 # Басқару мәзірі
 if not st.session_state.logged_in:
