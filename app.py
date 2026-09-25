@@ -1,44 +1,96 @@
 import streamlit as st
+import json
+import os
 
 # Барақшаның баптаулары
 st.set_page_config(page_title="Ахмад Академиясы - ҰБТ Порталы", page_icon="🎓", layout="centered")
 
-# Қара/сұр толқынды фон дизайны мен стильдер
-BACKGROUND_IMAGE_URL = "https://i.ibb.co/68Xwz6T/image-194624.jpg"  # Сіз жіберген фон суреті
+# 1. СҰРАҚТАРДЫ СЕРВЕРДЕ ӨШПЕЙТІН ЕТІП JSON ФАЙЛҒА САҚТАУ ЛОГИКАСЫ
+QUESTIONS_FILE = "questions.json"
 
+DEFAULT_QUESTIONS = [
+    {
+        "direction": "Математика - Физика",
+        "type": "single",
+        "question": "Синус 30 градуста нешеге тең?",
+        "image": "",
+        "options": ["0", "0.5", "1", "sqrt(3)/2"],
+        "answer": ["0.5"]
+    },
+    {
+        "direction": "Математика - Физика",
+        "type": "multiple",
+        "question": "Төмендегілердің қайсысы скаляр шамалар болып табылады? (Бірнеше жауап таңдаңыз)",
+        "image": "",
+        "options": ["Масса", "Үдеу", "Уақыт", "Күш"],
+        "answer": ["Масса", "Уақыт"]
+    },
+    {
+        "direction": "Химия - Биология",
+        "type": "single",
+        "question": "Судың химиялық формуласы қандай?",
+        "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Water_molecule_3D.svg/200px-Water_molecule_3D.svg.png",
+        "options": ["CO2", "H2O", "NaCl", "O2"],
+        "answer": ["H2O"]
+    }
+]
+
+def load_questions():
+    if os.path.exists(QUESTIONS_FILE):
+        try:
+            with open(QUESTIONS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return DEFAULT_QUESTIONS
+    else:
+        save_questions(DEFAULT_QUESTIONS)
+        return DEFAULT_QUESTIONS
+
+def save_questions(questions_list):
+    with open(QUESTIONS_FILE, "w", encoding="utf-8") as f:
+        json.dump(questions_list, f, ensure_ascii=False, indent=4)
+
+if 'questions' not in st.session_state:
+    st.session_state.questions = load_questions()
+
+# 2. ДИЗАЙН: ҚАРА-СҰР ТОЛҚЫНДЫ ФОН (CSS арқылы жасалған, ешқашан бұзылмайды)
 st.markdown(
-    f"""
+    """
     <style>
-    /* Жалпы фонды орнату */
-    .stApp {{
-        background-image: url('{BACKGROUND_IMAGE_URL}');
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
+    /* Негізгі фон мен қара-сұр градиент */
+    .stApp {
+        background: radial-gradient(circle at 50% 30%, #334155 0%, #1E293B 50%, #0F172A 100%);
         background-attachment: fixed;
-        color: #E2E8F0;
-    }}
-    
-    /* Контейнерлер мен карталарды күңгірт мөлдір ету */
-    .stMarkdown, div[data-testid="stVerticalBlock"] > div {{
         color: #F8FAFC;
-    }}
-    
-    /* Input және Select box стильдері */
-    div[data-baseweb="select"] > div, input {{
+    }
+
+    /* Формалар мен контейнерлер */
+    div[data-testid="stVerticalBlock"] > div {
+        color: #F8FAFC;
+    }
+
+    /* Түймелер дизайны */
+    .stButton > button {
+        border-radius: 10px !important;
+        font-weight: bold !important;
+    }
+
+    /* Input / Selectbox баптаулары */
+    input, div[data-baseweb="select"] > div {
         background-color: #1E293B !important;
         color: #F8FAFC !important;
+        border: 1px solid #475569 !important;
         border-radius: 8px !important;
-    }}
+    }
 
-    /* Табтар дизайны */
-    button[data-baseweb="tab"] {{
+    /* Вкладкалар */
+    button[data-baseweb="tab"] {
         color: #94A3B8 !important;
-    }}
-    button[data-baseweb="tab"][aria-selected="true"] {{
+    }
+    button[data-baseweb="tab"][aria-selected="true"] {
         color: #38BDF8 !important;
         border-bottom-color: #38BDF8 !important;
-    }}
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -66,35 +118,6 @@ DIRECTIONS = [
     "География - Математика"
 ]
 
-# Сұрақтар базасы
-if 'questions' not in st.session_state:
-    st.session_state.questions = [
-        {
-            "direction": "Математика - Физика",
-            "type": "single",
-            "question": "Синус 30 градуста нешеге тең?",
-            "image": "",
-            "options": ["0", "0.5", "1", "sqrt(3)/2"],
-            "answer": ["0.5"]
-        },
-        {
-            "direction": "Математика - Физика",
-            "type": "multiple",
-            "question": "Төмендегілердің қайсысы скаляр шамалар болып табылады? (Бірнеше жауап таңдаңыз)",
-            "image": "",
-            "options": ["Масса", "Үдеу", "Уақыт", "Күш"],
-            "answer": ["Масса", "Уақыт"]
-        },
-        {
-            "direction": "Химия - Биология",
-            "type": "single",
-            "question": "Судың химиялық формуласы қандай?",
-            "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Water_molecule_3D.svg/200px-Water_molecule_3D.svg.png",
-            "options": ["CO2", "H2O", "NaCl", "O2"],
-            "answer": ["H2O"]
-        }
-    ]
-
 # Нәтижелер
 if 'results' not in st.session_state:
     st.session_state.results = [
@@ -102,32 +125,29 @@ if 'results' not in st.session_state:
         {"Оқушы": "Аружан", "Бағыты": "Химия - Биология", "Балл": 5, "Макс": 10}
     ]
 
-# Өзгертілген стильдегі сертификат (Шарларсыз, заманауи дизайн)
+# Сертификат
 def show_certificate(student_name, direction, score, total):
     st.markdown(
         f"""
         <div style="
             border: 2px solid #38BDF8; 
-            padding: 40px 20px; 
+            padding: 35px 20px; 
             text-align: center; 
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95)); 
-            border-radius: 20px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-            margin-top: 20px;
+            background: rgba(15, 23, 42, 0.9); 
+            border-radius: 16px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+            margin-top: 15px;
             color: #F8FAFC;
         ">
-            <h4 style="color: #94A3B8; letter-spacing: 4px; margin-bottom: 5px;">АХМАД АКАДЕМИЯСЫ</h4>
-            <h1 style="color: #38BDF8; font-family: 'Cinzel', sans-serif; font-size: 38px; margin-top: 0; text-shadow: 0 0 10px rgba(56,189,248,0.3);">
-                🎓 СЕРТИФИКАТ
-            </h1>
-            <p style="font-size: 16px; color: #CBD5E1; margin-top: 20px;">Осы сертификат ҰБТ байқау тестін сәтті тапсырғаны үшін</p>
-            <h2 style="color: #FACC15; font-size: 32px; font-weight: bold; margin: 15px 0;">{student_name}</h2>
-            <p style="font-size: 16px; color: #CBD5E1;">иегеріне <b>«{direction}»</b> бағыты бойынша беріледі.</p>
-            <hr style="border: 0; height: 1px; background: linear-gradient(to right, transparent, #38BDF8, transparent); margin: 25px 0;">
-            <div style="background-color: rgba(56, 189, 248, 0.1); border: 1px solid #38BDF8; padding: 15px 30px; border-radius: 12px; display: inline-block;">
-                <h3 style="color: #38BDF8; margin: 0; font-size: 22px;">Нәтиже: {score} / {total} балл</h3>
+            <h5 style="color: #94A3B8; letter-spacing: 3px; margin-bottom: 5px;">АХМАД АКАДЕМИЯСЫ</h5>
+            <h1 style="color: #38BDF8; font-size: 36px; margin-top: 0;">🎓 СЕРТИФИКАТ</h1>
+            <p style="font-size: 15px; color: #CBD5E1; margin-top: 15px;">Осы сертификат ҰБТ байқау тестін сәтті тапсырғаны үшін</p>
+            <h2 style="color: #FACC15; font-size: 30px; margin: 10px 0;">{student_name}</h2>
+            <p style="font-size: 15px; color: #CBD5E1;">иегеріне <b>«{direction}»</b> бағыты бойынша беріледі.</p>
+            <hr style="border: 0; height: 1px; background: #38BDF8; margin: 20px 0;">
+            <div style="background-color: rgba(56, 189, 248, 0.15); border: 1px solid #38BDF8; padding: 12px 25px; border-radius: 10px; display: inline-block;">
+                <h3 style="color: #38BDF8; margin: 0; font-size: 20px;">Нәтиже: {score} / {total} балл</h3>
             </div>
-            <p style="font-size: 13px; color: #64748B; margin-top: 25px;">Ресми сертификат • Ахмад Академиясы 🚀</p>
         </div>
         """,
         unsafe_allow_html=True
@@ -164,13 +184,11 @@ def login_page():
 def student_dashboard():
     st.title(f"👨‍🎓 Оқушы кабинеті: {st.session_state.display_name}")
     
-    # Тест статустарын тексеру
     if "test_started" not in st.session_state:
         st.session_state.test_started = False
     if "test_finished" not in st.session_state:
         st.session_state.test_finished = False
 
-    # 1. ТЕСТ СТАPТ АЛМАҒАН КЕЗДЕ
     if not st.session_state.test_started and not st.session_state.test_finished:
         st.subheader("📌 Өз ҰБТ бағытыңызды таңдаңыз:")
         selected_direction = st.selectbox("Бейіндік пәндер комбинациясы:", DIRECTIONS)
@@ -186,7 +204,6 @@ def student_dashboard():
                 st.session_state.test_started = True
                 st.rerun()
 
-    # 2. ТЕСТ БАСТАЛҒАН КЕЗДЕ (Үлкен формат)
     elif st.session_state.test_started and not st.session_state.test_finished:
         direction = st.session_state.selected_direction
         filtered_questions = [q for q in st.session_state.questions if q["direction"] == direction]
@@ -243,7 +260,6 @@ def student_dashboard():
             st.session_state.test_finished = True
             st.rerun()
 
-    # 3. ТЕСТ АЯҚТАЛҒАНДАН КЕЙІН
     elif st.session_state.test_finished:
         direction = st.session_state.selected_direction
         filtered_questions = [q for q in st.session_state.questions if q["direction"] == direction]
@@ -252,7 +268,6 @@ def student_dashboard():
         total = st.session_state.total
         user_answers = st.session_state.user_answers
 
-        # Сертификат көрсету (шарларсыз)
         show_certificate(st.session_state.display_name, direction, score, total)
         
         st.divider()
@@ -373,10 +388,8 @@ def director_dashboard():
                 correct_ans = [selected_single] if selected_single else []
             else:
                 correct_ans = st.multiselect("Дұрыс жауаптарды белгілеңіз:", options_list, key="add_ans_multi")
-        else:
-            st.info("💡 Төрт нұсқаны да толық жазғаннан кейін дұрыс жауапты таңдау бөлімі шығады.")
 
-        if st.button("Сұрақты базаға сақтау"):
+        if st.button("Сұрақты базаға сақтау", type="primary"):
             if q_text and len(options_list) == 4 and correct_ans:
                 st.session_state.questions.append({
                     "direction": target_direction,
@@ -386,7 +399,10 @@ def director_dashboard():
                     "options": options_list,
                     "answer": correct_ans
                 })
-                st.success(f"Сұрақ '{target_direction}' бағытына сәтті қосылды!")
+                # Файлға мәңгілікке сақтау
+                save_questions(st.session_state.questions)
+                st.success(f"Сұрақ сәтті сақталды және файлға жазылды!")
+                st.rerun()
             else:
                 st.error("Барлық өрістерді толтырыңыз!")
 
@@ -436,13 +452,15 @@ def director_dashboard():
                         "options": edit_opts_list,
                         "answer": edit_ans
                     }
-                    st.success("Сұрақ сәтті жаңартылды!")
+                    save_questions(st.session_state.questions)
+                    st.success("Сұрақ жаңартылып, сақталды!")
                     st.rerun()
                     
             with col_del:
                 if st.button("🗑️ Сұрақты өшіру"):
                     st.session_state.questions.pop(selected_q_idx)
-                    st.success("Сұрақ базадан өшірілді!")
+                    save_questions(st.session_state.questions)
+                    st.success("Сұрақ өшірілді!")
                     st.rerun()
 
 # Басқару мәзірі
