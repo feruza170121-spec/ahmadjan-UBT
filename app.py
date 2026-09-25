@@ -1,15 +1,15 @@
 import streamlit as st
 
-# Баракшанын баптаулары
+# Барақшаның баптаулары
 st.set_page_config(page_title="Ахмад Академиясы - ҰБТ Порталы", page_icon="🎓", layout="centered")
 
-# Сессияны башкаруу
+# Сессияны басқару
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.username = ""
     st.session_state.role = ""
 
-# Колдонуучулар базасы (Логин, Пароль, Аты-жөнү, Ролу)
+# Пайдаланушылар базасы
 if 'users' not in st.session_state:
     st.session_state.users = {
         "student": {"password": "123", "name": "Айбек", "role": "student"},
@@ -17,7 +17,7 @@ if 'users' not in st.session_state:
         "admin": {"password": "admin123", "name": "Мектеп Директоры", "role": "director"}
     }
 
-# Багыттар тизмеси
+# Бағыттар тізімі
 DIRECTIONS = [
     "Математика - Физика",
     "Химия - Биология",
@@ -25,7 +25,7 @@ DIRECTIONS = [
     "География - Математика"
 ]
 
-# Базадагы суроолор (Сүрөт жана туура жооптор менен)
+# Сұрақтар базасы
 if 'questions' not in st.session_state:
     st.session_state.questions = [
         {
@@ -54,14 +54,14 @@ if 'questions' not in st.session_state:
         }
     ]
 
-# Тест жыйынтыктарын сактоо
+# Нәтижелер
 if 'results' not in st.session_state:
     st.session_state.results = [
         {"Оқушы": "Айбек", "Бағыты": "Математика - Физика", "Балл": 10, "Макс": 10},
         {"Оқушы": "Аружан", "Бағыты": "Химия - Биология", "Балл": 5, "Макс": 10}
     ]
 
-# --- СЕРТИФИКАТ КӨРСӨТҮҮ ФУНКЦИЯСЫ ---
+# Сертификат көрсету
 def show_certificate(student_name, direction, score, total):
     st.balloons()
     st.markdown(
@@ -82,7 +82,7 @@ def show_certificate(student_name, direction, score, total):
         unsafe_allow_html=True
     )
 
-# --- ЛОГИН ПАНЕЛИ ---
+# Логин беті
 def login_page():
     st.title("🎓 Ахмад Академиясы - ҰБТ Порталы")
     
@@ -109,88 +109,108 @@ def login_page():
     * 👨‍💼 **Директор кабинеті:** Логин: `admin` | Пароль: `admin123`
     """)
 
-# --- ОКУУЧУ КАБИНЕТИ ---
+# Оқушы кабинеті
 def student_dashboard():
     st.title(f"👨‍🎓 Оқушы кабинеті: {st.session_state.display_name}")
     
-    st.subheader("📌 Өз ҰБТ бағытыңызды таңдаңыз:")
-    selected_direction = st.selectbox("Бейіндік пәндер комбинациясы:", DIRECTIONS)
-    
-    st.divider()
-    st.write(f"### 📝 Тест бағыты: {selected_direction}")
-    
-    filtered_questions = [q for q in st.session_state.questions if q["direction"] == selected_direction]
-    
-    if not filtered_questions:
-        st.warning("Бұл бағыт бойынша әлі сұрақтар қосылмаған!")
-        return
+    # Тест статустарын тексеру
+    if "test_started" not in st.session_state:
+        st.session_state.test_started = False
+    if "test_finished" not in st.session_state:
+        st.session_state.test_finished = False
 
-    test_submitted_key = f"submitted_{selected_direction}"
-    
-    if test_submitted_key not in st.session_state:
-        st.session_state[test_submitted_key] = False
+    # 1. ТЕСТ СТАPТ АЛМАҒАН КЕЗДЕ (Бағыт таңдау панелі)
+    if not st.session_state.test_started and not st.session_state.test_finished:
+        st.subheader("📌 Өз ҰБТ бағытыңызды таңдаңыз:")
+        selected_direction = st.selectbox("Бейіндік пәндер комбинациясы:", DIRECTIONS)
+        
+        filtered_q = [q for q in st.session_state.questions if q["direction"] == selected_direction]
+        st.info(f"Таңдалған бағыт бойынша **{len(filtered_q)}** сұрақ бар.")
+        
+        if len(filtered_q) == 0:
+            st.warning("Бұл бағыт бойынша әлі сұрақ қосылмаған!")
+        else:
+            if st.button("🚀 Тестті бастау", type="primary", use_container_width=True):
+                st.session_state.selected_direction = selected_direction
+                st.session_state.test_started = True
+                st.rerun()
 
-    if not st.session_state[test_submitted_key]:
+    # 2. ТЕСТ БАСТАЛҒАН КЕЗДЕ (Тек сұрақтар мен жауаптар үлкен болып көрінеді)
+    elif st.session_state.test_started and not st.session_state.test_finished:
+        direction = st.session_state.selected_direction
+        filtered_questions = [q for q in st.session_state.questions if q["direction"] == direction]
+        
+        st.write(f"## 📝 Бағыты: {direction}")
+        st.divider()
+
         user_answers = {}
         for i, q in enumerate(filtered_questions):
-            st.write(f"**{i+1}. {q['question']}**")
+            # Сұрақ үлкен шрифтпен (h3)
+            st.markdown(f"### {i+1}. {q['question']}")
             
             if q.get("image"):
-                st.image(q["image"], use_container_width=True)
+                st.image(q["image"], width=400)
             
+            # Бір жауапты
             if q.get("type", "single") == "single":
                 selected_val = st.radio(
                     "Жауапты таңдаңыз:",
                     q['options'],
                     index=None,
-                    key=f"q_{i}_{selected_direction}",
+                    key=f"q_{i}_radio",
                     label_visibility="collapsed"
                 )
                 user_answers[i] = [selected_val] if selected_val else []
+            # Көп жауапты (Кілті қайталанбайтындай етіп opt_idx қосылған)
             else:
                 selected_opts = []
                 st.caption("*(Бірнеше жауап таңдауға болады)*")
-                for opt in q['options']:
-                    if st.checkbox(opt, key=f"q_{i}_{opt}_{selected_direction}"):
+                for opt_idx, opt in enumerate(q['options']):
+                    if st.checkbox(opt, key=f"q_{i}_opt_{opt_idx}"):
                         selected_opts.append(opt)
                 user_answers[i] = selected_opts
-            st.write("---")
+            
+            st.markdown("---")
 
-        if st.button("Тестті аяқтау"):
+        if st.button("🏁 Тестті аяқтау", type="primary", use_container_width=True):
             score = 0
             total = len(filtered_questions) * 5
             
             for i, q in enumerate(filtered_questions):
-                ans = user_answers[i]
+                ans = user_answers.get(i, [])
                 if set(ans) == set(q['answer']):
                     score += 5
                     
             st.session_state.results.append({
                 "Оқушы": st.session_state.display_name,
-                "Бағыты": selected_direction,
+                "Бағыты": direction,
                 "Балл": score,
                 "Макс": total
             })
             
-            st.session_state[test_submitted_key] = True
-            st.session_state[f"last_answers_{selected_direction}"] = user_answers
-            st.session_state[f"last_score_{selected_direction}"] = score
-            st.session_state[f"last_total_{selected_direction}"] = total
+            st.session_state.user_answers = user_answers
+            st.session_state.score = score
+            st.session_state.total = total
+            st.session_state.test_started = False
+            st.session_state.test_finished = True
             st.rerun()
 
-    else:
-        # --- ТЕСТ АЯКТАЛГАНДАН КИЙИНКИ КАТАЛАР МЕНЕН ИШТӨӨ БӨЛҮМҮ ---
-        score = st.session_state[f"last_score_{selected_direction}"]
-        total = st.session_state[f"last_total_{selected_direction}"]
-        saved_answers = st.session_state[f"last_answers_{selected_direction}"]
+    # 3. ТЕСТ АЯҚТАЛҒАНДАН КЕЙІН (Сертификат + Қателерді талдау)
+    elif st.session_state.test_finished:
+        direction = st.session_state.selected_direction
+        filtered_questions = [q for q in st.session_state.questions if q["direction"] == direction]
+        
+        score = st.session_state.score
+        total = st.session_state.total
+        user_answers = st.session_state.user_answers
 
-        show_certificate(st.session_state.display_name, selected_direction, score, total)
+        show_certificate(st.session_state.display_name, direction, score, total)
         
         st.divider()
         st.subheader("🔍 Тест нәтижелері мен қателерді талдау:")
         
         for i, q in enumerate(filtered_questions):
-            u_ans = saved_answers.get(i, [])
+            u_ans = user_answers.get(i, [])
             c_ans = q['answer']
             is_correct = set(u_ans) == set(c_ans)
             
@@ -210,17 +230,17 @@ def student_dashboard():
                 st.info(f"**Дұрыс жауап:** {c_ans_str}")
             st.write("---")
 
-        if st.button("Тестті қайта тапсыру"):
-            st.session_state[test_submitted_key] = False
+        if st.button("🔄 Басқа тест тапсыру"):
+            st.session_state.test_started = False
+            st.session_state.test_finished = False
             st.rerun()
 
-# --- ДИРЕКТОР КАБИНЕТИ ---
+# Директор кабинеті
 def director_dashboard():
     st.title(f"👨‍💼 Директор кабинеті")
     
     tab1, tab2, tab3, tab4 = st.tabs(["📊 Оқушылар нәтижесі", "🔑 Аккаунттар", "➕ Жаңа сұрақ енгізу", "📝 Сұрақтарды өңдеу/өшіру"])
     
-    # 1-Вкладка: Окуучулардын жыйынтыктары
     with tab1:
         st.subheader("Оқушылардың бағыттар бойынша ҰБТ нәтижелері")
         if len(st.session_state.results) > 0:
@@ -228,10 +248,8 @@ def director_dashboard():
         else:
             st.info("Әлі ешқандай оқушы тест тапсырмады.")
             
-    # 2-Вкладка: Аккаунттарды башкаруу
     with tab2:
-        st.subheader("👥 Барлық пайдаланушылар тізімі (Логин мен Парольдер)")
-        
+        st.subheader("👥 Барлық пайдаланушылар тізімі")
         user_list = []
         for uname, udata in st.session_state.users.items():
             user_list.append({
@@ -253,7 +271,7 @@ def director_dashboard():
             if st.button("Парольді жаңарту"):
                 if new_password:
                     st.session_state.users[selected_user]["password"] = new_password
-                    st.success(f"'{selected_user}' аккаунтының паролі сәтті өзгертілді!")
+                    st.success(f"'{selected_user}' паролі сәтті өзгертілді!")
                     st.rerun()
                 else:
                     st.warning("Жаңа парольді енгізіңіз!")
@@ -279,7 +297,6 @@ def director_dashboard():
                 else:
                     st.warning("Барлық өрістерді толтырыңыз!")
 
-    # 3-Вкладка: Жаңы суроо кошуу
     with tab3:
         st.subheader("Жаңа тест сұрағын қосу")
         
@@ -301,7 +318,7 @@ def director_dashboard():
         
         correct_ans = []
         if len(options_list) == 4:
-            st.subheader("🎯 Дұрыс жауабын (жауаптарын) белгілеңіз:")
+            st.subheader("🎯 Дұрыс жауабын белгілеңіз:")
             if q_type == "Бір дұрыс жауапты":
                 selected_single = st.selectbox("Дұрыс жауапты таңдаңыз:", options_list, key="add_ans_single")
                 correct_ans = [selected_single] if selected_single else []
@@ -322,23 +339,20 @@ def director_dashboard():
                 })
                 st.success(f"Сұрақ '{target_direction}' бағытына сәтті қосылды!")
             else:
-                st.error("Барлық өрістерді толтырып, дұрыс жауапты (жауаптарды) белгілеңіз!")
+                st.error("Барлық өрістерді толтырыңыз!")
 
-    # 4-Вкладка: Суроолорду өзгөртүү жана өчүрүү
     with tab4:
-        st.subheader("📝 Қосылған сұрақтарды өңдеу немесе өшіру")
+        st.subheader("📝 Сұрақтарды өңдеу немесе өшіру")
         
         if not st.session_state.questions:
             st.info("Базада әлі сұрақтар жоқ.")
         else:
             q_options = [f"{i+1}. [{q['direction']}] {q['question']}" for i, q in enumerate(st.session_state.questions)]
-            selected_q_idx = st.selectbox("Өңдейтін немесе өшіретін сұрақты таңдаңыз:", range(len(q_options)), format_func=lambda x: q_options[x])
+            selected_q_idx = st.selectbox("Өңдейтін сұрақты таңдаңыз:", range(len(q_options)), format_func=lambda x: q_options[x])
             
             q_data = st.session_state.questions[selected_q_idx]
             
             st.divider()
-            st.write("### ✏️ Сұрақты өңдеу:")
-            
             edit_dir = st.selectbox("Бағыты:", DIRECTIONS, index=DIRECTIONS.index(q_data["direction"]), key="edit_dir")
             edit_type = st.radio("Сұрақтың түрі:", ["Бір дұрыс жауапты", "Көп дұрыс жауапты (бірнеше)"], index=0 if q_data.get("type", "single") == "single" else 1, key="edit_type")
             edit_text = st.text_input("Сұрақтың мәтіні:", value=q_data["question"], key="edit_text")
@@ -382,7 +396,7 @@ def director_dashboard():
                     st.success("Сұрақ базадан өшірілді!")
                     st.rerun()
 
-# --- НЕГИЗГИ БАШКАРУУ МЕНЮСУ ---
+# Басқару мәзірі
 if not st.session_state.logged_in:
     login_page()
 else:
