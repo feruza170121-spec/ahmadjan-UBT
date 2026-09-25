@@ -2,10 +2,10 @@ import streamlit as st
 import json
 import os
 
-# Барақшаның баптаулары
+# Баракчаның баптаулары
 st.set_page_config(page_title="Ахмад Академиясы - ҰБТ Порталы", page_icon="🎓", layout="centered")
 
-# 1. ҰБТ-НЫҢ БАРЛЫҚ ПӘНДЕРІ (Матсау қосылды)
+# 1. ҰБТ-НЫҢ БАРЛЫҚ ПӘНДЕРІ
 ALL_SUBJECTS = [
     "Математикалық сауаттылық",
     "Оқу сауаттылығы",
@@ -32,7 +32,8 @@ DEFAULT_QUESTIONS = [
         "question": "Сандар тізбегіндегі келесі санды тап: 2, 4, 8, 16, ?",
         "image": "",
         "options": ["20", "24", "32", "64"],
-        "answer": ["32"]
+        "answer": ["32"],
+        "author": "Математика мұғалімі"
     },
     {
         "direction": "Математика",
@@ -40,7 +41,8 @@ DEFAULT_QUESTIONS = [
         "question": "Синус 30 градуста нешеге тең?",
         "image": "",
         "options": ["0", "0.5", "1", "sqrt(3)/2"],
-        "answer": ["0.5"]
+        "answer": ["0.5"],
+        "author": "Математика мұғалімі"
     },
     {
         "direction": "Физика",
@@ -48,7 +50,8 @@ DEFAULT_QUESTIONS = [
         "question": "Төмендегілердің қайсысы скаляр шамалар болып табылады? (Бірнеше жауап таңдаңыз)",
         "image": "",
         "options": ["Масса", "Үдеу", "Уақыт", "Күш"],
-        "answer": ["Масса", "Уақыт"]
+        "answer": ["Масса", "Уақыт"],
+        "author": "Мектеп Директоры"
     }
 ]
 
@@ -74,26 +77,19 @@ if 'questions' not in st.session_state:
 st.markdown(
     """
     <style>
-    /* Негізгі фон */
     .stApp {
         background-color: #05140B !important;
         color: #4ADE80 !important;
     }
-
-    /* Мәтіндер мен белгілер */
     h1, h2, h3, h4, h5, h6, p, span, label, div {
         color: #22C55E !important;
     }
-
-    /* Деректерді енгізу өрістері */
     input, textarea, div[data-baseweb="select"] > div {
         background-color: #0A2615 !important;
         color: #4ADE80 !important;
         border: 1px solid #22C55E !important;
         border-radius: 8px !important;
     }
-
-    /* Түймелер дизайны */
     .stButton > button {
         background-color: #15803D !important;
         color: #FFFFFF !important;
@@ -105,13 +101,9 @@ st.markdown(
         background-color: #22C55E !important;
         color: #000000 !important;
     }
-
-    /* Radio және Checkbox белгілері */
     div[class*="stRadio"] label, div[class*="stCheckbox"] label {
         color: #86EFAC !important;
     }
-
-    /* Табтар (Вкладкалар) */
     button[data-baseweb="tab"] {
         color: #166534 !important;
     }
@@ -130,7 +122,7 @@ if 'logged_in' not in st.session_state:
     st.session_state.username = ""
     st.session_state.role = ""
 
-# Пайдаланушылар базасы (Мұғалім қосылды)
+# Пайдаланушылар базасы
 if 'users' not in st.session_state:
     st.session_state.users = {
         "student": {"password": "123", "name": "Айбек", "role": "student"},
@@ -138,7 +130,6 @@ if 'users' not in st.session_state:
         "admin": {"password": "admin123", "name": "Мектеп Директоры", "role": "director"}
     }
 
-# Нәтижелер
 if 'results' not in st.session_state:
     st.session_state.results = [
         {"Оқушы": "Айбек", "Пән": "Математикалық сауаттылық", "Балл": 5, "Макс": 5}
@@ -209,6 +200,8 @@ def student_dashboard():
         st.session_state.test_started = False
     if "test_finished" not in st.session_state:
         st.session_state.test_finished = False
+    if "selected_subject" not in st.session_state:
+        st.session_state.selected_subject = ALL_SUBJECTS[0]
 
     if not st.session_state.test_started and not st.session_state.test_finished:
         st.subheader("📌 Тапсыратын пәнді таңдаңыз:")
@@ -226,7 +219,7 @@ def student_dashboard():
                 st.rerun()
 
     elif st.session_state.test_started and not st.session_state.test_finished:
-        subject = st.session_state.selected_subject
+        subject = st.session_state.get("selected_subject", ALL_SUBJECTS[0])
         filtered_questions = [q for q in st.session_state.questions if q.get("direction") == subject]
         
         st.write(f"## 📝 Пән: {subject}")
@@ -282,12 +275,12 @@ def student_dashboard():
             st.rerun()
 
     elif st.session_state.test_finished:
-        subject = st.session_state.selected_subject
+        subject = st.session_state.get("selected_subject", ALL_SUBJECTS[0])
         filtered_questions = [q for q in st.session_state.questions if q.get("direction") == subject]
         
-        score = st.session_state.score
-        total = st.session_state.total
-        user_answers = st.session_state.user_answers
+        score = st.session_state.get("score", 0)
+        total = st.session_state.get("total", 0)
+        user_answers = st.session_state.get("user_answers", {})
 
         show_certificate(st.session_state.display_name, subject, score, total)
         
@@ -320,119 +313,60 @@ def student_dashboard():
             st.session_state.test_finished = False
             st.rerun()
 
-# Мұғалім кабинеті (Тек сұрақ енгізу және өзгерту)
+# Мұғалім кабинеті (Тек қана сұрақ құрастыра алады)
 def teacher_dashboard():
     st.title(f"👩‍🏫 Мұғалім кабинеті: {st.session_state.display_name}")
     
     target_subject = st.session_state.get("teacher_subject", ALL_SUBJECTS[0])
     st.success(f"📌 Сіз тағайындалған пән: **{target_subject}**")
     
-    tab1, tab2 = st.tabs(["➕ Сұрақ қосу", "📝 Өз пәніңіздің сұрақтарын басқару"])
+    st.subheader(f"➕ «{target_subject}» пәніне жаңа сұрақ енгізу")
     
-    with tab1:
-        st.subheader(f"«{target_subject}» пәніне жаңа сұрақ енгізу")
+    q_type = st.radio("Сұрақтың түрі:", ["Бір дұрыс жауапты", "Көп дұрыс жауапты (бірнеше)"], key="t_add_type")
+    q_text = st.text_input("Сұрақтың мәтіні:", key="t_add_text")
+    img_url = st.text_input("Суреттің URL сілтемесі (міндетті емес):", placeholder="https://example.com/image.png", key="t_add_img")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        opt1 = st.text_input("А нұсқасы:", key="t_opt1")
+        opt2 = st.text_input("В нұсқасы:", key="t_opt2")
+    with col2:
+        opt3 = st.text_input("С нұсқасы:", key="t_opt3")
+        opt4 = st.text_input("D нұсқасы:", key="t_opt4")
         
-        q_type = st.radio("Сұрақтың түрі:", ["Бір дұрыс жауапты", "Көп дұрыс жауапты (бірнеше)"], key="t_add_type")
-        q_text = st.text_input("Сұрақтың мәтіні:", key="t_add_text")
-        img_url = st.text_input("Суреттің URL сілтемесі (міндетті емес):", placeholder="https://example.com/image.png", key="t_add_img")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            opt1 = st.text_input("А нұсқасы:", key="t_opt1")
-            opt2 = st.text_input("В нұсқасы:", key="t_opt2")
-        with col2:
-            opt3 = st.text_input("С нұсқасы:", key="t_opt3")
-            opt4 = st.text_input("D нұсқасы:", key="t_opt4")
-            
-        options_list = [opt for opt in [opt1, opt2, opt3, opt4] if opt.strip() != ""]
-        
-        correct_ans = []
-        if len(options_list) == 4:
-            st.subheader("🎯 Дұрыс жауабын белгілеңіз:")
-            if q_type == "Бір дұрыс жауапты":
-                selected_single = st.selectbox("Дұрыс жауапты таңдаңыз:", options_list, key="t_ans_single")
-                correct_ans = [selected_single] if selected_single else []
-            else:
-                correct_ans = st.multiselect("Дұрыс жауаптарды белгілеңіз:", options_list, key="t_ans_multi")
-
-        if st.button("Сұрақты сақтау", type="primary"):
-            if q_text and len(options_list) == 4 and correct_ans:
-                st.session_state.questions.append({
-                    "direction": target_subject,
-                    "type": "single" if q_type == "Бір дұрыс жауапты" else "multiple",
-                    "question": q_text,
-                    "image": img_url,
-                    "options": options_list,
-                    "answer": correct_ans
-                })
-                save_questions(st.session_state.questions)
-                st.success(f"Сұрақ '{target_subject}' пәніне сәтті сақталды!")
-                st.rerun()
-            else:
-                st.error("Барлық өрістерді толтырыңыз!")
-
-    with tab2:
-        st.subheader(f"«{target_subject}» пәнінің сұрақтары")
-        
-        subject_questions = [(i, q) for i, q in enumerate(st.session_state.questions) if q.get("direction") == target_subject]
-        
-        if not subject_questions:
-            st.info("Бұл пән бойынша әлі сұрақтар енгізілмеген.")
+    options_list = [opt for opt in [opt1, opt2, opt3, opt4] if opt.strip() != ""]
+    
+    correct_ans = []
+    if len(options_list) == 4:
+        st.subheader("🎯 Дұрыс жауабын белгілеңіз:")
+        if q_type == "Бір дұрыс жауапты":
+            selected_single = st.selectbox("Дұрыс жауапты таңдаңыз:", options_list, key="t_ans_single")
+            correct_ans = [selected_single] if selected_single else []
         else:
-            q_options = [f"{idx+1}. {q['question']}" for idx, (real_idx, q) in enumerate(subject_questions)]
-            selected_q = st.selectbox("Сұрақты таңдаңыз:", range(len(q_options)), format_func=lambda x: q_options[x])
-            
-            real_index, q_data = subject_questions[selected_q]
-            
-            st.divider()
-            edit_text = st.text_input("Сұрақтың мәтіні:", value=q_data["question"], key="t_edit_text")
-            edit_img = st.text_input("Сурет сілтемесі:", value=q_data.get("image", ""), key="t_edit_img")
-            
-            opts = q_data["options"]
-            col1, col2 = st.columns(2)
-            with col1:
-                e_opt1 = st.text_input("А нұсқасы:", value=opts[0] if len(opts) > 0 else "", key="t_e_opt1")
-                e_opt2 = st.text_input("В нұсқасы:", value=opts[1] if len(opts) > 1 else "", key="t_e_opt2")
-            with col2:
-                e_opt3 = st.text_input("С нұсқасы:", value=opts[2] if len(opts) > 2 else "", key="t_e_opt3")
-                e_opt4 = st.text_input("D нұсқасы:", value=opts[3] if len(opts) > 3 else "", key="t_e_opt4")
-                
-            edit_opts_list = [e_opt1, e_opt2, e_opt3, e_opt4]
-            
-            if q_data.get("type") == "single":
-                default_single = q_data["answer"][0] if q_data["answer"] and q_data["answer"][0] in edit_opts_list else edit_opts_list[0]
-                edit_ans = [st.selectbox("Дұрыс жауабы:", edit_opts_list, index=edit_opts_list.index(default_single), key="t_e_ans_single")]
-            else:
-                valid_defaults = [a for a in q_data["answer"] if a in edit_opts_list]
-                edit_ans = st.multiselect("Дұрыс жауаптары:", edit_opts_list, default=valid_defaults, key="t_e_ans_multi")
-                
-            col_save, col_del = st.columns(2)
-            with col_save:
-                if st.button("💾 Өзгерісті сақтау"):
-                    st.session_state.questions[real_index] = {
-                        "direction": target_subject,
-                        "type": q_data.get("type", "single"),
-                        "question": edit_text,
-                        "image": edit_img,
-                        "options": edit_opts_list,
-                        "answer": edit_ans
-                    }
-                    save_questions(st.session_state.questions)
-                    st.success("Сұрақ жаңартылды!")
-                    st.rerun()
-                    
-            with col_del:
-                if st.button("🗑️ Сұрақты өшіру"):
-                    st.session_state.questions.pop(real_index)
-                    save_questions(st.session_state.questions)
-                    st.success("Сұрақ өшірілді!")
-                    st.rerun()
+            correct_ans = st.multiselect("Дұрыс жауаптарды белгілеңіз:", options_list, key="t_ans_multi")
 
-# Директор кабинеті
+    if st.button("Сұрақты сақтау", type="primary", use_container_width=True):
+        if q_text and len(options_list) == 4 and correct_ans:
+            st.session_state.questions.append({
+                "direction": target_subject,
+                "type": "single" if q_type == "Бір дұрыс жауапты" else "multiple",
+                "question": q_text,
+                "image": img_url,
+                "options": options_list,
+                "answer": correct_ans,
+                "author": st.session_state.display_name
+            })
+            save_questions(st.session_state.questions)
+            st.success(f"Сұрақ '{target_subject}' пәніне сәтті сақталды!")
+            st.rerun()
+        else:
+            st.error("Барлық өрістерді толтырыңыз!")
+
+# Директор кабинеті (Толық доступ бар)
 def director_dashboard():
     st.title(f"👨‍💼 Директор кабинеті")
     
-    tab1, tab2, tab3 = st.tabs(["📊 Оқушылар нәтижесі", "🔑 Аккаунттарды басқару", "📝 Барлық сұрақтарды басқару"])
+    tab1, tab2, tab3 = st.tabs(["📊 Оқушылар нәтижесі", "🔑 Аккаунттарды & Парольдерді басқару", "🔍 Барлық сұрақтарды іздеу & басқару"])
     
     with tab1:
         st.subheader("Оқушылардың ҰБТ нәтижелері")
@@ -458,10 +392,27 @@ def director_dashboard():
         st.table(user_list)
         
         st.divider()
+        st.subheader("✏️ Парольду же Аты-жөндү өзгөртүү (Редактировать)")
+        
+        all_logins = list(st.session_state.users.keys())
+        selected_user_to_edit = st.selectbox("Өзгөртө турган пайдаланушыны таңдаңыз:", all_logins)
+        
+        if selected_user_to_edit:
+            u_info = st.session_state.users[selected_user_to_edit]
+            edit_name = st.text_input("Жаңа Аты-жөні:", value=u_info["name"], key="edit_u_name")
+            edit_pass = st.text_input("Жаңа Пароль:", value=u_info["password"], key="edit_u_pass")
+            
+            if st.button("💾 Парольду / Аты-жөндү сақтау", type="primary"):
+                st.session_state.users[selected_user_to_edit]["name"] = edit_name
+                st.session_state.users[selected_user_to_edit]["password"] = edit_pass
+                st.success(f"'{selected_user_to_edit}' аккаунтунун маалыматтары сәтті жаңартылды!")
+                st.rerun()
+
+        st.divider()
         st.write("### ➕ Жаңа пайдаланушы тіркеу (Оқушы немесе Мұғалім)")
-        new_uname = st.text_input("Логин:")
-        new_name = st.text_input("Аты-жөні:")
-        new_pass = st.text_input("Пароль:")
+        new_uname = st.text_input("Логин:", key="new_u_login")
+        new_name = st.text_input("Аты-жөні:", key="new_u_name")
+        new_pass = st.text_input("Пароль:", key="new_u_pass")
         new_role = st.selectbox("Ролі:", ["student", "teacher"], format_func=lambda x: "Оқушы" if x == "student" else "Мұғалім")
         
         teacher_subj = None
@@ -483,25 +434,70 @@ def director_dashboard():
                 st.warning("Барлық өрісті толтырыңыз!")
 
     with tab3:
-        st.subheader("📝 Барлық сұрақтарды басқару")
-        if not st.session_state.questions:
-            st.info("Базада әлі сұрақтар жоқ.")
-        else:
-            q_options = [f"{i+1}. [{q.get('direction', 'Пәнсіз')}] {q['question']}" for i, q in enumerate(st.session_state.questions)]
-            selected_q_idx = st.selectbox("Сұрақты таңдаңыз:", range(len(q_options)), format_func=lambda x: q_options[x], key="dir_select_q")
+        st.subheader("🔍 Сұрақтарды іздеу және басқару")
+        
+        col_s1, col_s2 = st.columns([2, 1])
+        with col_s1:
+            search_query = st.text_input("🔍 Сұрақ мәтіні немесе Автор аты бойынша іздеу:", placeholder="Сөз енгізіңіз...").strip().lower()
+        with col_s2:
+            filter_subj = st.selectbox("Пән бойынша сүзгіш:", ["Барлығы"] + ALL_SUBJECTS)
+        
+        matching_questions = []
+        for idx, q in enumerate(st.session_state.questions):
+            q_text = q.get("question", "").lower()
+            q_author = q.get("author", "Белгісіз").lower()
+            q_subj = q.get("direction", "")
             
-            q_data = st.session_state.questions[selected_q_idx]
+            matches_search = (search_query in q_text) or (search_query in q_author)
+            matches_subj = (filter_subj == "Барлығы") or (filter_subj == q_subj)
+            
+            if matches_search and matches_subj:
+                matching_questions.append((idx, q))
+                
+        st.write(f"Табылған сұрақтар саны: **{len(matching_questions)}**")
+        
+        if not matching_questions:
+            st.warning("Іздеуге сәйкес сұрақтар табылмады.")
+        else:
+            q_options = [f"{idx+1}. [{q.get('direction', 'Пәнсіз')}] {q['question']}" for idx, (real_idx, q) in enumerate(matching_questions)]
+            selected_match_idx = st.selectbox("Өңдеу немесе өшіру үшін сұрақты таңдаңыз:", range(len(q_options)), format_func=lambda x: q_options[x], key="dir_search_select")
+            
+            real_index, q_data = matching_questions[selected_match_idx]
             
             st.divider()
+            st.info(f"✍️ **Сұрақты енгізген автор:** {q_data.get('author', 'Белгісіз')}")
+            
             edit_subj_index = ALL_SUBJECTS.index(q_data["direction"]) if q_data.get("direction") in ALL_SUBJECTS else 0
             edit_subj = st.selectbox("Пәні:", ALL_SUBJECTS, index=edit_subj_index, key="dir_edit_subj")
             edit_text = st.text_input("Сұрақтың мәтіні:", value=q_data["question"], key="dir_edit_text")
             
-            if st.button("🗑️ Сұрақты өшіру", key="dir_del_btn"):
-                st.session_state.questions.pop(selected_q_idx)
-                save_questions(st.session_state.questions)
-                st.success("Сұрақ өшірілді!")
-                st.rerun()
+            opts = q_data["options"]
+            col1, col2 = st.columns(2)
+            with col1:
+                e_opt1 = st.text_input("А нұсқасы:", value=opts[0] if len(opts) > 0 else "", key="dir_e_opt1")
+                e_opt2 = st.text_input("В нұсқасы:", value=opts[1] if len(opts) > 1 else "", key="dir_e_opt2")
+            with col2:
+                e_opt3 = st.text_input("С нұсқасы:", value=opts[2] if len(opts) > 2 else "", key="dir_e_opt3")
+                e_opt4 = st.text_input("D нұсқасы:", value=opts[3] if len(opts) > 3 else "", key="dir_e_opt4")
+                
+            edit_opts_list = [e_opt1, e_opt2, e_opt3, e_opt4]
+            
+            col_save_dir, col_del_dir = st.columns(2)
+            with col_save_dir:
+                if st.button("💾 Өзгерісті сақтау", key="dir_save_btn"):
+                    st.session_state.questions[real_index]["direction"] = edit_subj
+                    st.session_state.questions[real_index]["question"] = edit_text
+                    st.session_state.questions[real_index]["options"] = edit_opts_list
+                    save_questions(st.session_state.questions)
+                    st.success("Сұрақ сәтті жаңартылды!")
+                    st.rerun()
+
+            with col_del_dir:
+                if st.button("🗑️ Сұрақты өшіру", key="dir_del_btn"):
+                    st.session_state.questions.pop(real_index)
+                    save_questions(st.session_state.questions)
+                    st.success("Сұрақ өшірілді!")
+                    st.rerun()
 
 # Басқару мәзірі
 if not st.session_state.logged_in:
