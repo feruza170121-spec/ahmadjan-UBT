@@ -1,6 +1,6 @@
 import streamlit as st
 
-# Баракчанын баптаулары
+# Баракшанын баптаулары
 st.set_page_config(page_title="Ахмад Академиясы - ҰБТ Порталы", page_icon="🎓", layout="centered")
 
 # Сессияны башкаруу
@@ -25,7 +25,7 @@ DIRECTIONS = [
     "География - Математика"
 ]
 
-# Базадагы суроолор (Сүрөт кошуу мүмкүнчүлүгү менен)
+# Базадагы суроолор (Сүрөт жана туура жооптор менен)
 if 'questions' not in st.session_state:
     st.session_state.questions = [
         {
@@ -125,7 +125,6 @@ def student_dashboard():
         st.warning("Бұл бағыт бойынша әлі сұрақтар қосылмаған!")
         return
 
-    # Тест тапшырылып бүткөнүн текшерүү
     test_submitted_key = f"submitted_{selected_direction}"
     
     if test_submitted_key not in st.session_state:
@@ -136,11 +135,9 @@ def student_dashboard():
         for i, q in enumerate(filtered_questions):
             st.write(f"**{i+1}. {q['question']}**")
             
-            # Эгер суроодо сүрөт болсо көрсөтүү
             if q.get("image"):
                 st.image(q["image"], use_container_width=True)
             
-            # Бир жооптуу суроо
             if q.get("type", "single") == "single":
                 selected_val = st.radio(
                     "Жауапты таңдаңыз:",
@@ -150,7 +147,6 @@ def student_dashboard():
                     label_visibility="collapsed"
                 )
                 user_answers[i] = [selected_val] if selected_val else []
-            # Көп жооптуу суроо
             else:
                 selected_opts = []
                 st.caption("*(Бірнеше жауап таңдауға болады)*")
@@ -176,7 +172,6 @@ def student_dashboard():
                 "Макс": total
             })
             
-            # Жыйынтыкты жана колдонуучунун жоопторун сактоо
             st.session_state[test_submitted_key] = True
             st.session_state[f"last_answers_{selected_direction}"] = user_answers
             st.session_state[f"last_score_{selected_direction}"] = score
@@ -223,7 +218,7 @@ def student_dashboard():
 def director_dashboard():
     st.title(f"👨‍💼 Директор кабинеті")
     
-    tab1, tab2, tab3 = st.tabs(["📊 Оқушылар нәтижесі", "🔑 Аккаунттар мен Парольдер", "➕ Жаңа сұрақ енгізу"])
+    tab1, tab2, tab3, tab4 = st.tabs(["📊 Оқушылар нәтижесі", "🔑 Аккаунттар", "➕ Жаңа сұрақ енгізу", "📝 Сұрақтарды өңдеу/өшіру"])
     
     # 1-Вкладка: Окуучулардын жыйынтыктары
     with tab1:
@@ -284,33 +279,39 @@ def director_dashboard():
                 else:
                     st.warning("Барлық өрістерді толтырыңыз!")
 
-    # 3-Вкладка: Жаңы суроо кошуу (Сүрөт кошуу мүмкүнчүлүгү менен)
+    # 3-Вкладка: Жаңы суроо кошуу
     with tab3:
         st.subheader("Жаңа тест сұрағын қосу")
         
-        target_direction = st.selectbox("Сұрақ қай бағытқа арналған?", DIRECTIONS)
-        q_type = st.radio("Сұрақтың түрі:", ["Бір дұрыс жауапты", "Көп дұрыс жауапты (бірнеше)"])
+        target_direction = st.selectbox("Сұрақ қай бағытқа арналған?", DIRECTIONS, key="add_dir")
+        q_type = st.radio("Сұрақтың түрі:", ["Бір дұрыс жауапты", "Көп дұрыс жауапты (бірнеше)"], key="add_type")
         
-        q_text = st.text_input("Сұрақтың мәтіні:")
-        img_url = st.text_input("Суреттің URL шилтемесі (міндетті емес):", placeholder="https://example.com/image.png")
+        q_text = st.text_input("Сұрақтың мәтіні:", key="add_text")
+        img_url = st.text_input("Суреттің URL шилтемесі (міндетті емес):", placeholder="https://example.com/image.png", key="add_img")
         
         col1, col2 = st.columns(2)
         with col1:
-            opt1 = st.text_input("А нұсқасы:")
-            opt2 = st.text_input("В нұсқасы:")
+            opt1 = st.text_input("А нұсқасы:", key="add_opt1")
+            opt2 = st.text_input("В нұсқасы:", key="add_opt2")
         with col2:
-            opt3 = st.text_input("С нұсқасы:")
-            opt4 = st.text_input("D нұсқасы:")
+            opt3 = st.text_input("С нұсқасы:", key="add_opt3")
+            opt4 = st.text_input("D нұсқасы:", key="add_opt4")
             
-        options_list = [opt1, opt2, opt3, opt4]
+        options_list = [opt for opt in [opt1, opt2, opt3, opt4] if opt.strip() != ""]
         
-        if q_type == "Бір дұрыс жауапты":
-            correct_ans = [st.selectbox("Дұрыс жауабы қайсысы?", options_list)]
+        correct_ans = []
+        if len(options_list) == 4:
+            st.subheader("🎯 Дұрыс жауабын (жауаптарын) белгілеңіз:")
+            if q_type == "Бір дұрыс жауапты":
+                selected_single = st.selectbox("Дұрыс жауапты таңдаңыз:", options_list, key="add_ans_single")
+                correct_ans = [selected_single] if selected_single else []
+            else:
+                correct_ans = st.multiselect("Дұрыс жауаптарды белгілеңіз:", options_list, key="add_ans_multi")
         else:
-            correct_ans = st.multiselect("Дұрыс жауаптарды белгілеңіз (бірнешеуін таңдауға болады):", options_list)
-        
+            st.info("💡 Төрт нұсқаны да толық жазғаннан кейін дұрыс жауапты таңдау бөлімі шығады.")
+
         if st.button("Сұрақты базаға сақтау"):
-            if q_text and opt1 and opt2 and opt3 and opt4 and correct_ans:
+            if q_text and len(options_list) == 4 and correct_ans:
                 st.session_state.questions.append({
                     "direction": target_direction,
                     "type": "single" if q_type == "Бір дұрыс жауапты" else "multiple",
@@ -321,7 +322,65 @@ def director_dashboard():
                 })
                 st.success(f"Сұрақ '{target_direction}' бағытына сәтті қосылды!")
             else:
-                st.error("Барлық өрістерді толтырып, дұрыс жауапты белгілеңіз!")
+                st.error("Барлық өрістерді толтырып, дұрыс жауапты (жауаптарды) белгілеңіз!")
+
+    # 4-Вкладка: Суроолорду өзгөртүү жана өчүрүү
+    with tab4:
+        st.subheader("📝 Қосылған сұрақтарды өңдеу немесе өшіру")
+        
+        if not st.session_state.questions:
+            st.info("Базада әлі сұрақтар жоқ.")
+        else:
+            q_options = [f"{i+1}. [{q['direction']}] {q['question']}" for i, q in enumerate(st.session_state.questions)]
+            selected_q_idx = st.selectbox("Өңдейтін немесе өшіретін сұрақты таңдаңыз:", range(len(q_options)), format_func=lambda x: q_options[x])
+            
+            q_data = st.session_state.questions[selected_q_idx]
+            
+            st.divider()
+            st.write("### ✏️ Сұрақты өңдеу:")
+            
+            edit_dir = st.selectbox("Бағыты:", DIRECTIONS, index=DIRECTIONS.index(q_data["direction"]), key="edit_dir")
+            edit_type = st.radio("Сұрақтың түрі:", ["Бір дұрыс жауапты", "Көп дұрыс жауапты (бірнеше)"], index=0 if q_data.get("type", "single") == "single" else 1, key="edit_type")
+            edit_text = st.text_input("Сұрақтың мәтіні:", value=q_data["question"], key="edit_text")
+            edit_img = st.text_input("Суреттің URL шилтемесі:", value=q_data.get("image", ""), key="edit_img")
+            
+            col1, col2 = st.columns(2)
+            opts = q_data["options"]
+            with col1:
+                e_opt1 = st.text_input("А нұсқасы:", value=opts[0] if len(opts) > 0 else "", key="edit_opt1")
+                e_opt2 = st.text_input("В нұсқасы:", value=opts[1] if len(opts) > 1 else "", key="edit_opt2")
+            with col2:
+                e_opt3 = st.text_input("С нұсқасы:", value=opts[2] if len(opts) > 2 else "", key="edit_opt3")
+                e_opt4 = st.text_input("D нұсқасы:", value=opts[3] if len(opts) > 3 else "", key="edit_opt4")
+                
+            edit_opts_list = [e_opt1, e_opt2, e_opt3, e_opt4]
+            
+            if edit_type == "Бір дұрыс жауапты":
+                default_single = q_data["answer"][0] if q_data["answer"] and q_data["answer"][0] in edit_opts_list else edit_opts_list[0]
+                edit_ans = [st.selectbox("Дұрыс жауабы:", edit_opts_list, index=edit_opts_list.index(default_single), key="edit_ans_single")]
+            else:
+                valid_defaults = [a for a in q_data["answer"] if a in edit_opts_list]
+                edit_ans = st.multiselect("Дұрыс жауаптары:", edit_opts_list, default=valid_defaults, key="edit_ans_multi")
+                
+            col_save, col_del = st.columns(2)
+            with col_save:
+                if st.button("💾 Өзгерістерді сақтау"):
+                    st.session_state.questions[selected_q_idx] = {
+                        "direction": edit_dir,
+                        "type": "single" if edit_type == "Бір дұрыс жауапты" else "multiple",
+                        "question": edit_text,
+                        "image": edit_img,
+                        "options": edit_opts_list,
+                        "answer": edit_ans
+                    }
+                    st.success("Сұрақ сәтті жаңартылды!")
+                    st.rerun()
+                    
+            with col_del:
+                if st.button("🗑️ Сұрақты өшіру"):
+                    st.session_state.questions.pop(selected_q_idx)
+                    st.success("Сұрақ базадан өшірілді!")
+                    st.rerun()
 
 # --- НЕГИЗГИ БАШКАРУУ МЕНЮСУ ---
 if not st.session_state.logged_in:
