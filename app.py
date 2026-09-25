@@ -3,10 +3,10 @@ import json
 import os
 import uuid
 
-# Настройки страницы
+# Параметры страницы
 st.set_page_config(page_title="Ахмад Академиясы - ҰБТ Порталы", page_icon="🎓", layout="centered")
 
-# 1. ВСЕ Предметы ЕНТ
+# 1. ВСЕ ПРЕДМЕТЫ ЕНТ
 ALL_SUBJECTS = [
     "Математикалық сауаттылық",
     "Оқу сауаттылығы",
@@ -23,7 +23,7 @@ ALL_SUBJECTS = [
     "Информатика"
 ]
 
-# 2. ЧТЕНИЕ И СОХРАНЕНИЕ ВОПРОСОВ В JSON
+# 2. РАБОТА С ФАЙЛОМ ВОПРОСОВ (JSON)
 QUESTIONS_FILE = "questions.json"
 
 DEFAULT_QUESTIONS = [
@@ -74,7 +74,7 @@ def save_questions(questions_list):
 if 'questions' not in st.session_state:
     st.session_state.questions = load_questions()
 
-# 3. ДИЗАЙН: ЗЕЛЕНЫЙ СТИЛЬ
+# 3. ДИЗАЙН (ЖАСЫЛ ТЕХНОЛОГИЯЛЫҚ СТИЛЬ)
 st.markdown(
     """
     <style>
@@ -117,7 +117,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Управление сессиями и пользователями
+# СЕССИЯ ЖӘНЕ ПАЙДАЛАНУШЫЛАРДЫ БАСҚАРУ
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.username = ""
@@ -136,7 +136,7 @@ if 'results' not in st.session_state:
         {"Оқушы": "Айбек", "Пән": "Математикалық сауаттылық", "Балл": 5, "Макс": 5}
     ]
 
-# Отображение сертификата
+# СЕРТИФИКАТ КӨРСЕТУ
 def show_certificate(student_name, subject, score, total):
     st.markdown(
         f"""
@@ -165,7 +165,7 @@ def show_certificate(student_name, subject, score, total):
         unsafe_allow_html=True
     )
 
-# Страница входа (Логин)
+# КІРУ СРАНИЦАСЫ (LOGIN)
 def login_page():
     st.title("🎓 Ахмад Академиясы - ҰБТ Порталы")
     
@@ -176,7 +176,7 @@ def login_page():
         if username in st.session_state.users:
             user = st.session_state.users[username]
             if user.get("is_blocked", False):
-                st.error("🚫 Бұл аккаунт күдікті әрекеттер (вкладка ауыстыру) үшін бұғатталған! Мектеп директорына хабарласыңыз.")
+                st.error("🚫 Бұл аккаунт ереже бұзғаны (вкладка ауыстыру) үшін бұғатталған! Директорға хабарласыңыз.")
             elif user["password"] == password:
                 new_session_id = str(uuid.uuid4())
                 st.session_state.users[username]["active_session_id"] = new_session_id
@@ -195,13 +195,13 @@ def login_page():
             st.error("Мұндай логин табылмады!")
 
     st.info("""
-    **Әдепкі аккаунттар:**
+    **Қолжетімді аккаунттар:**
     * 👨‍🎓 **Оқушы:** Логин: `student` | Пароль: `123`
     * 👩‍🏫 **Мұғалім:** Логин: `teacher` | Пароль: `123`
     * 👨‍💼 **Директор:** Логин: `admin` | Пароль: `admin123`
     """)
 
-# Кабинет ученика
+# ОҚУШЫ КАБИНЕТІ
 def student_dashboard():
     st.title(f"👨‍🎓 Оқушы кабинеті: {st.session_state.display_name}")
     
@@ -232,14 +232,14 @@ def student_dashboard():
 
     elif st.session_state.test_started and not st.session_state.test_finished:
         
-        # Кнопка фиксирования предупреждения
+        # Ескерту батырмасы (Қолмен немесе авто жұмыс істейді)
         col_warn1, col_warn2 = st.columns([3, 1])
         with col_warn2:
             if st.button("🔔 Ескертуді тіркеу", key="manual_warn_btn"):
                 st.session_state.tab_warnings += 1
                 st.rerun()
 
-        # JS-скрипт отслеживания переключения вкладок
+        # Жетілдірілген JavaScript: Вкладка ауысқанда автоматты түрде Ескерту батырмасын басады
         st.components.v1.html("""
             <script>
             document.addEventListener("visibilitychange", function() {
@@ -256,7 +256,7 @@ def student_dashboard():
             </script>
         """, height=0)
 
-        # Логика предупреждений и блокировки
+        # Ескертулер мен бұғаттау жүйесі
         warnings = st.session_state.tab_warnings
 
         if warnings == 1 or warnings == 2:
@@ -367,14 +367,14 @@ def student_dashboard():
             st.session_state.test_finished = False
             st.rerun()
 
-# Кабинет учителя (создание вопросов)
+# МҰҒАЛІМ КАБИНЕТІ
 def teacher_dashboard():
     st.title(f"👩‍🏫 Мұғалім кабинеті: {st.session_state.display_name}")
     
     target_subject = st.session_state.get("teacher_subject", ALL_SUBJECTS[0])
-    st.success(f"📌 Сіз тағайындалған пән: **{target_subject}**")
+    st.success(f"📌 Сіздің тағайындалған пәніңіз: **{target_subject}**")
     
-    st.subheader(f"➕ «{target_subject}» пәніне жаңа сұрақ енгізу")
+    st.subheader(f"➕ «{target_subject}» пәніне жаңа сұрақ қосу")
     
     q_type = st.radio("Сұрақтың түрі:", ["Бір дұрыс жауапты", "Көп дұрыс жауапты (бірнеше)"], key="t_add_type")
     q_text = st.text_input("Сұрақтың мәтіні:", key="t_add_text")
@@ -414,13 +414,13 @@ def teacher_dashboard():
             st.success(f"Сұрақ '{target_subject}' пәніне сәтті сақталды!")
             st.rerun()
         else:
-            st.error("Барлық өрістерді толтырыңыз!")
+            st.error("Барлық өрістерді толық толтырыңыз!")
 
-# Кабинет директора (полные права на управление, удаление и разблокировку)
+# ДИРЕКТОР КАБИНЕТІ
 def director_dashboard():
     st.title(f"👨‍💼 Директор кабинеті")
     
-    tab1, tab2, tab3 = st.tabs(["📊 Оқушылар нәтижесі", "🔑 Аккаунттарды & Блоктауды басқару", "🔍 Сұрақтарды өшіру & Басқару"])
+    tab1, tab2, tab3 = st.tabs(["📊 Оқушылар нәтижесі", "🔑 Аккаунттар & Блоктауды басқару", "🔍 Сұрақтарды басқару & Өшіру"])
     
     with tab1:
         st.subheader("Оқушылардың ҰБТ нәтижелері")
@@ -458,7 +458,7 @@ def director_dashboard():
             u_info = st.session_state.users[selected_user_to_edit]
             edit_name = st.text_input("Аты-жөні:", value=u_info["name"], key="edit_u_name")
             edit_pass = st.text_input("Пароль:", value=u_info["password"], key="edit_u_pass")
-            is_blocked_status = st.checkbox("🚫 Аккаунт бұғатталған (Unblock үшін құсбелгіні алып тастаңыз)", value=u_info.get("is_blocked", False))
+            is_blocked_status = st.checkbox("🚫 Аккаунт бұғатталған (Бұғаттан шығару үшін осы белгіні алып тастаңыз)", value=u_info.get("is_blocked", False))
             
             col_u_save, col_u_del = st.columns(2)
             
@@ -488,7 +488,7 @@ def director_dashboard():
         
         teacher_subj = None
         if new_role == "teacher":
-            teacher_subj = st.selectbox("Мұғалімге тағайындалатын пән:", ALL_SUBJECTS)
+            teacher_subj = st.selectbox("Мұғалімге берілетін пән:", ALL_SUBJECTS)
             
         if st.button("Тіркеу"):
             if new_uname and new_name and new_pass:
@@ -505,13 +505,13 @@ def director_dashboard():
                 st.warning("Барлық өрісті толтырыңыз!")
 
     with tab3:
-        st.subheader("🔍 Сұрақтарды іздеу, өңдеу және өшіру")
+        st.subheader("🔍 Сұрақтарды іздеу, өзгерту және өшіру")
         
         col_s1, col_s2 = st.columns([2, 1])
         with col_s1:
-            search_query = st.text_input("🔍 Сұрақ мәтіні немесе Автор аты бойынша іздеу:", placeholder="Сөз енгізіңіз...").strip().lower()
+            search_query = st.text_input("🔍 Іздеу (мәтін немесе автор аты):", placeholder="Іздеу сөзі...").strip().lower()
         with col_s2:
-            filter_subj = st.selectbox("Пән бойынша сүзгіш:", ["Барлығы"] + ALL_SUBJECTS)
+            filter_subj = st.selectbox("Пән бойынша сүзгі:", ["Барлығы"] + ALL_SUBJECTS)
         
         matching_questions = []
         for idx, q in enumerate(st.session_state.questions):
@@ -536,11 +536,11 @@ def director_dashboard():
             real_index, q_data = matching_questions[selected_match_idx]
             
             st.divider()
-            st.info(f"✍️ **Сұрақты енгізген автор:** {q_data.get('author', 'Белгісіз')}")
+            st.info(f"✍️ **Бұл сұрақтың авторы:** {q_data.get('author', 'Белгісіз')}")
             
             edit_subj_index = ALL_SUBJECTS.index(q_data["direction"]) if q_data.get("direction") in ALL_SUBJECTS else 0
             edit_subj = st.selectbox("Пәні:", ALL_SUBJECTS, index=edit_subj_index, key="dir_edit_subj")
-            edit_text = st.text_input("Сұрақтың мәтіні:", value=q_data["question"], key="dir_edit_text")
+            edit_text = st.text_input("Сұрақ мәтіні:", value=q_data["question"], key="dir_edit_text")
             
             opts = q_data["options"]
             col1, col2 = st.columns(2)
@@ -567,10 +567,10 @@ def director_dashboard():
                 if st.button("🗑️ Сұрақты өшіру", key="dir_del_btn"):
                     st.session_state.questions.pop(real_index)
                     save_questions(st.session_state.questions)
-                    st.success("Сұрақ өшірілді!")
+                    st.success("Сұрақ базадан өшірілді!")
                     st.rerun()
 
-# Проверка активных сессий (ограничение 1 аккаунт — 1 устройство)
+# СЕССИЯНЫ ТЕКСЕРУ (Бір уақытта бір құрылғыдан ғана кіру)
 if st.session_state.logged_in:
     current_username = st.session_state.username
     current_session_id = st.session_state.session_id
@@ -582,7 +582,7 @@ if st.session_state.logged_in:
         st.warning("⚠️ Сіздің аккаунтыңызға басқа құрылғыдан кірді! Жүйеден шығарылдыңыз.")
         st.rerun()
 
-# Навигация и вывод нужного интерфейса
+# БАСҚАРУ ЖӘНЕ ІСКЕ ҚОСУ ЛОГИКАСЫ
 if not st.session_state.logged_in:
     login_page()
 else:
