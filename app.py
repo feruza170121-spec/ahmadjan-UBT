@@ -3,6 +3,47 @@ import streamlit as st
 # Барақшаның баптаулары
 st.set_page_config(page_title="Ахмад Академиясы - ҰБТ Порталы", page_icon="🎓", layout="centered")
 
+# Қара/сұр толқынды фон дизайны мен стильдер
+BACKGROUND_IMAGE_URL = "https://i.ibb.co/68Xwz6T/image-194624.jpg"  # Сіз жіберген фон суреті
+
+st.markdown(
+    f"""
+    <style>
+    /* Жалпы фонды орнату */
+    .stApp {{
+        background-image: url('{BACKGROUND_IMAGE_URL}');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        color: #E2E8F0;
+    }}
+    
+    /* Контейнерлер мен карталарды күңгірт мөлдір ету */
+    .stMarkdown, div[data-testid="stVerticalBlock"] > div {{
+        color: #F8FAFC;
+    }}
+    
+    /* Input және Select box стильдері */
+    div[data-baseweb="select"] > div, input {{
+        background-color: #1E293B !important;
+        color: #F8FAFC !important;
+        border-radius: 8px !important;
+    }}
+
+    /* Табтар дизайны */
+    button[data-baseweb="tab"] {{
+        color: #94A3B8 !important;
+    }}
+    button[data-baseweb="tab"][aria-selected="true"] {{
+        color: #38BDF8 !important;
+        border-bottom-color: #38BDF8 !important;
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # Сессияны басқару
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
@@ -61,22 +102,32 @@ if 'results' not in st.session_state:
         {"Оқушы": "Аружан", "Бағыты": "Химия - Биология", "Балл": 5, "Макс": 10}
     ]
 
-# Сертификат көрсету
+# Өзгертілген стильдегі сертификат (Шарларсыз, заманауи дизайн)
 def show_certificate(student_name, direction, score, total):
-    st.balloons()
     st.markdown(
         f"""
-        <div style="border: 10px double #1E3A8A; padding: 30px; text-align: center; background-color: #F8FAFC; border-radius: 15px; margin-top: 20px;">
-            <h1 style="color: #1E3A8A; font-family: 'Georgia', serif;">📜 СЕРТИФИКАТ</h1>
-            <h3 style="color: #475569;">АХМАД АКАДЕМИЯСЫ</h3>
-            <hr style="border: 1px solid #1E3A8A; width: 80%; margin: 20px auto;">
-            <p style="font-size: 18px; color: #334155;">Осы сертификат ҰБТ байқау тестін сәтті тапсырғаны үшін</p>
-            <h2 style="color: #0F172A; text-decoration: underline;">{student_name}</h2>
-            <p style="font-size: 18px; color: #334155;">оқушысына <b>«{direction}»</b> бағыты бойынша беріледі.</p>
-            <div style="background-color: #DBEAFE; padding: 15px; border-radius: 10px; display: inline-block; margin: 15px 0;">
-                <h3 style="color: #1E40AF; margin: 0;">Нәтижесі: {score} / {total} балл</h3>
+        <div style="
+            border: 2px solid #38BDF8; 
+            padding: 40px 20px; 
+            text-align: center; 
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95)); 
+            border-radius: 20px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            margin-top: 20px;
+            color: #F8FAFC;
+        ">
+            <h4 style="color: #94A3B8; letter-spacing: 4px; margin-bottom: 5px;">АХМАД АКАДЕМИЯСЫ</h4>
+            <h1 style="color: #38BDF8; font-family: 'Cinzel', sans-serif; font-size: 38px; margin-top: 0; text-shadow: 0 0 10px rgba(56,189,248,0.3);">
+                🎓 СЕРТИФИКАТ
+            </h1>
+            <p style="font-size: 16px; color: #CBD5E1; margin-top: 20px;">Осы сертификат ҰБТ байқау тестін сәтті тапсырғаны үшін</p>
+            <h2 style="color: #FACC15; font-size: 32px; font-weight: bold; margin: 15px 0;">{student_name}</h2>
+            <p style="font-size: 16px; color: #CBD5E1;">иегеріне <b>«{direction}»</b> бағыты бойынша беріледі.</p>
+            <hr style="border: 0; height: 1px; background: linear-gradient(to right, transparent, #38BDF8, transparent); margin: 25px 0;">
+            <div style="background-color: rgba(56, 189, 248, 0.1); border: 1px solid #38BDF8; padding: 15px 30px; border-radius: 12px; display: inline-block;">
+                <h3 style="color: #38BDF8; margin: 0; font-size: 22px;">Нәтиже: {score} / {total} балл</h3>
             </div>
-            <p style="font-size: 14px; color: #64748B; margin-top: 20px;">Ахмад Академиясы сізге ҰБТ-да жоғары балл тілейді! 🚀</p>
+            <p style="font-size: 13px; color: #64748B; margin-top: 25px;">Ресми сертификат • Ахмад Академиясы 🚀</p>
         </div>
         """,
         unsafe_allow_html=True
@@ -89,7 +140,7 @@ def login_page():
     username = st.text_input("Логин (Пайдаланушы аты)")
     password = st.text_input("Пароль", type="password")
     
-    if st.button("Кіру"):
+    if st.button("Кіру", type="primary", use_container_width=True):
         if username in st.session_state.users:
             user = st.session_state.users[username]
             if user["password"] == password:
@@ -119,7 +170,7 @@ def student_dashboard():
     if "test_finished" not in st.session_state:
         st.session_state.test_finished = False
 
-    # 1. ТЕСТ СТАPТ АЛМАҒАН КЕЗДЕ (Бағыт таңдау панелі)
+    # 1. ТЕСТ СТАPТ АЛМАҒАН КЕЗДЕ
     if not st.session_state.test_started and not st.session_state.test_finished:
         st.subheader("📌 Өз ҰБТ бағытыңызды таңдаңыз:")
         selected_direction = st.selectbox("Бейіндік пәндер комбинациясы:", DIRECTIONS)
@@ -135,7 +186,7 @@ def student_dashboard():
                 st.session_state.test_started = True
                 st.rerun()
 
-    # 2. ТЕСТ БАСТАЛҒАН КЕЗДЕ (Тек сұрақтар мен жауаптар үлкен болып көрінеді)
+    # 2. ТЕСТ БАСТАЛҒАН КЕЗДЕ (Үлкен формат)
     elif st.session_state.test_started and not st.session_state.test_finished:
         direction = st.session_state.selected_direction
         filtered_questions = [q for q in st.session_state.questions if q["direction"] == direction]
@@ -145,13 +196,11 @@ def student_dashboard():
 
         user_answers = {}
         for i, q in enumerate(filtered_questions):
-            # Сұрақ үлкен шрифтпен (h3)
             st.markdown(f"### {i+1}. {q['question']}")
             
             if q.get("image"):
                 st.image(q["image"], width=400)
             
-            # Бір жауапты
             if q.get("type", "single") == "single":
                 selected_val = st.radio(
                     "Жауапты таңдаңыз:",
@@ -161,7 +210,6 @@ def student_dashboard():
                     label_visibility="collapsed"
                 )
                 user_answers[i] = [selected_val] if selected_val else []
-            # Көп жауапты (Кілті қайталанбайтындай етіп opt_idx қосылған)
             else:
                 selected_opts = []
                 st.caption("*(Бірнеше жауап таңдауға болады)*")
@@ -195,7 +243,7 @@ def student_dashboard():
             st.session_state.test_finished = True
             st.rerun()
 
-    # 3. ТЕСТ АЯҚТАЛҒАНДАН КЕЙІН (Сертификат + Қателерді талдау)
+    # 3. ТЕСТ АЯҚТАЛҒАНДАН КЕЙІН
     elif st.session_state.test_finished:
         direction = st.session_state.selected_direction
         filtered_questions = [q for q in st.session_state.questions if q["direction"] == direction]
@@ -204,6 +252,7 @@ def student_dashboard():
         total = st.session_state.total
         user_answers = st.session_state.user_answers
 
+        # Сертификат көрсету (шарларсыз)
         show_certificate(st.session_state.display_name, direction, score, total)
         
         st.divider()
