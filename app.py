@@ -194,13 +194,6 @@ def login_page():
         else:
             st.error("Мұндай логин табылмады!")
 
-    st.info("""
-    **Қолжетімді аккаунттар:**
-    * 👨‍🎓 **Оқушы:** Логин: `student` | Пароль: `123`
-    * 👩‍🏫 **Мұғалім:** Логин: `teacher` | Пароль: `123`
-    * 👨‍💼 **Директор:** Логин: `admin` | Пароль: `admin123`
-    """)
-
 # ОҚУШЫ КАБИНЕТІ
 def student_dashboard():
     st.title(f"👨‍🎓 Оқушы кабинеті: {st.session_state.display_name}")
@@ -307,12 +300,12 @@ def student_dashboard():
 
         if st.button("🏁 Тестті аяқтау", type="primary", use_container_width=True):
             score = 0
-            total = len(filtered_questions)  # 1 сұрақ = 1 балл (барлық сұрақ саны максимал балл болады)
+            total = len(filtered_questions)
             
             for i, q in enumerate(filtered_questions):
                 ans = user_answers.get(i, [])
                 if set(ans) == set(q['answer']):
-                    score += 1  # Әрбір дұрыс жауапқа 1 балл қосылады
+                    score += 1
                     
             st.session_state.results.append({
                 "Оқушы": st.session_state.display_name,
