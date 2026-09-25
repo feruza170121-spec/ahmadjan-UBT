@@ -133,7 +133,7 @@ if 'users' not in st.session_state:
 
 if 'results' not in st.session_state:
     st.session_state.results = [
-        {"Оқушы": "Айбек", "Пән": "Математикалық сауаттылық", "Балл": 5, "Макс": 5}
+        {"Оқушы": "Айбек", "Пән": "Математикалық сауаттылық", "Балл": 1, "Макс": 1}
     ]
 
 # СЕРТИФИКАТ КӨРСЕТУ
@@ -307,12 +307,12 @@ def student_dashboard():
 
         if st.button("🏁 Тестті аяқтау", type="primary", use_container_width=True):
             score = 0
-            total = len(filtered_questions) * 5
+            total = len(filtered_questions)  # 1 сұрақ = 1 балл (барлық сұрақ саны максимал балл болады)
             
             for i, q in enumerate(filtered_questions):
                 ans = user_answers.get(i, [])
                 if set(ans) == set(q['answer']):
-                    score += 5
+                    score += 1  # Әрбір дұрыс жауапқа 1 балл қосылады
                     
             st.session_state.results.append({
                 "Оқушы": st.session_state.display_name,
@@ -356,9 +356,9 @@ def student_dashboard():
             c_ans_str = ", ".join(c_ans)
             
             if is_correct:
-                st.success(f"**Сіздің жауабыңыз (Дұрыс):** {u_ans_str}")
+                st.success(f"**Сіздің жауабыңыз (Дұрыс):** {u_ans_str} (+1 балл)")
             else:
-                st.error(f"**Сіздің жауабыңыз:** {u_ans_str}")
+                st.error(f"**Сіздің жауабыңыз:** {u_ans_str} (0 балл)")
                 st.info(f"**Дұрыс жауап:** {c_ans_str}")
             st.write("---")
 
